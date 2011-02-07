@@ -7,4 +7,4 @@
 
 
 (defpackage #:restas-js
-  (:use #:cl :cl-js))
+  (:use #:cl #:iter #:cl-js))

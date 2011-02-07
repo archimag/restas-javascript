@@ -7,4 +7,6 @@
 
 (defsystem restas-js
   :depends-on (#:restas #:cl-js)
-  :components ((:file "restas-js")))
+  :components ((:module "src"
+                        :components ((:file "packages")
+                                     (:file "restas-js" :depends-on ("packages"))))))

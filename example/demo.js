@@ -13,7 +13,7 @@ var demo = new Restas.Module;
 
 // Hello world!
 
-demo.routes.helloWorld =  new Restas.Route();
+demo.routes.helloWorld =  demo.createRoute();
 
 demo.routes.helloWorld.handler = function () {
    return "<h1>Hello world!</h1>";
@@ -21,13 +21,13 @@ demo.routes.helloWorld.handler = function () {
 
 // Simple form
 
-demo.routes.simpleForm = new Restas.Route( { url: "form" } );
+demo.routes.simpleForm = demo.createRoute( { url: "form" } );
 
 demo.routes.simpleForm.handler = function () {
   return "<form method=\"post\"><input name=\"message\" /><input type=\"submit\" /></form>";
 };
 
-demo.routes.simpleFormPost = new Restas.Route( { url: demo.routes.simpleForm.url,
+demo.routes.simpleFormPost = demo.createRoute( { url: demo.routes.simpleForm.url,
                                                  method: "POST" } );
 
 demo.routes.simpleFormPost.handler = function () {
@@ -39,7 +39,7 @@ demo.routes.simpleFormPost.handler = function () {
 
 // Book with chapters
 
-demo.routes.bookRoot = new Restas.Route( { url: "book/" } );
+demo.routes.bookRoot = demo.createRoute( { url: "book/" } );
 
 demo.routes.bookRoot.handler = function () {
     var html =  "<h1>Index</h1><ul>";
@@ -54,7 +54,7 @@ demo.routes.bookRoot.handler = function () {
     return html;
 };
 
-demo.routes.chapter = new Restas.Route( { url: "book/chapter-:(id).html" } );
+demo.routes.chapter = demo.createRoute( { url: "book/chapter-:(id).html" } );
 
 demo.routes.chapter.handler = function (args) {
     var html = "<h1>Chapter " + args.id + "</h1><ul>";
@@ -69,7 +69,7 @@ demo.routes.chapter.handler = function (args) {
     return html;
 };
 
-demo.routes.subchapter = new Restas.Route( { url: "book/chapter-:(id1)-:(id2).html" } );
+demo.routes.subchapter = demo.createRoute( { url: "book/chapter-:(id1)-:(id2).html" } );
 
 demo.routes.subchapter.handler = function (args) {
     var html = "<h1>Chapter " + args.id1 + "-" + args.id2 + "</h1>";

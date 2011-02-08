@@ -9,4 +9,7 @@
   :depends-on (#:restas #:cl-js)
   :components ((:module "src"
                         :components ((:file "packages")
-                                     (:file "restas-javascript" :depends-on ("packages"))))))
+                                     (:file "utils" :depends-on ("packages"))
+                                     (:file "route" :depends-on ("utils"))
+                                     (:file "module" :depends-on ("route"))
+                                     (:file "restas-javascript" :depends-on ("module"))))))

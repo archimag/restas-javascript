@@ -1,4 +1,4 @@
-;;;; restas-javascript.cl
+;;;; restas-javascript.lisp
 ;;;;
 ;;;; This file is part of the RESTAS-JAVASCRIPT library, released under Lisp-LGPL.
 ;;;; See file COPYING for details.
@@ -7,174 +7,24 @@
 
 (in-package #:restas.javascript)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; utils
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun js-prop-or (obj prop &optional default)
-  (if (eql obj :undefined)
-      default
-      (let ((value (js-prop obj prop)))
-        (if (eq value :undefined)
-            default
-            value))))
-
-(defun lisp-to-camel-case (obj)
-  "Take a string with Lisp-style hyphentation and convert it to camel
-case.  This is an inverse of CAMEL-CASE-TO-LISP."
-  (if (stringp obj)
-      obj
-      (let ((string (string-downcase obj)))
-        (loop with i = 0 and l = (length string)
-           with cc-string = (make-string l) and cc-i = 0
-           with init = t and cap = nil and all-caps = nil
-           while (< i l)
-           do (let ((c (aref string i)))
-                (unless (case c
-                          (#\* (if init (setq cap t)))
-                          (#\+ (cond
-                                 (all-caps (setq all-caps nil init t))
-                                 (init (setq all-caps t))))
-                          (#\- (progn
-                                 (setq init t)
-                                 (cond
-                                   ((or all-caps
-                                        (and (< (1+ i) l)
-                                             (char= (aref string (1+ i)) #\-)
-                                             (incf i)))
-                                    (setf (aref cc-string cc-i) #\_)
-                                    (incf cc-i))
-                                   (t (setq cap t))))))
-                  (setf (aref cc-string cc-i)
-                        (if (and (or cap all-caps) (alpha-char-p c))
-                            (char-upcase c)
-                            (char-downcase c)))
-                  (incf cc-i)
-                  (setq cap nil init nil))
-                (incf i))
-           finally (return (subseq cc-string 0 cc-i))))))
-
-
-(defun alist-js-obj (alist)
-  (let ((obj (js-obj)))
-    (iter (for (key . value) in alist)
-          (setf (js-prop obj (lisp-to-camel-case key))
-                value))
-    obj))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-js-obj (module (:constructor make-module (cls)))
-  routes submodules)
-
-(defclass submodule ()
-  ((module :initarg :module)
-   (baseurl :initarg :baseurl)
-   (environmet :initarg :environment)))
-
-(define-js-obj (route (:constructor make-route (cls)))
-  url method handler)
-
-(defun init-route (route props)
-  (setf (slot-value route 'url) (js-prop-or props "url" "")
-        (slot-value route 'method) (string-upcase (js-prop-or props "method" "GET"))
-        (slot-value route 'handler) (js-prop route "handler"))
-  route)
-
-
-(defclass route-wrap (routes:route)
-  ((jsroute :initarg :js-route)
-   (submodule :initarg :submodule)))
-
-(defmethod restas:make-submodule ((module module) &key &allow-other-keys)
-  (make-instance 'submodule
-                 :module module
-                 :environment *env*
-                 :baseurl ""))
-
-(defmethod restas:submodule-routes ((submodule submodule))
-  (let* ((module (slot-value submodule 'module))
-         (routes (slot-value module 'routes))
-         routes-list)
-    (flet ((handle-route (name)
-             (let ((route (js-prop routes name)))
-               (push (make-instance 'route-wrap
-                                    :template (routes:parse-template (route-url route))
-                                    :js-route route
-                                    :submodule submodule)
-                     routes-list))))
-      (js-for-in routes #'handle-route)
-      routes-list)))
-
-(defmethod routes:route-check-conditions ((route route-wrap) bindings)
-  (string= (hunchentoot:request-method*)
-           (route-method (slot-value route 'jsroute))))
-
-(define-js-obj (request (:constructor make-request (cls)))
-  %request)
-
-(defun new-request ()
-  (let ((request (js-obj :request 'request)))
-    (setf (request-%request request)
-          hunchentoot:*request*)
-    (setf (js-prop request "post")
-          (alist-js-obj (hunchentoot:post-parameters*)))
-    (setf (js-prop request "get")
-          (alist-js-obj (hunchentoot:get-parameters*)))
-    request))
-
-(define-js-obj (reply (:constructor make-reply (cls)))
-  %reply)
-
-(defun new-reply ()
-  (let ((reply (js-obj :reply 'reply)))
-    (setf (reply-%reply reply)
-          hunchentoot:*reply*)
-    reply))
-
-(defmethod restas:process-route ((route route-wrap) bindings)
-  (let* ((sub (slot-value route 'submodule))
-         (*env* (slot-value sub 'environmet))
-         (context (js-obj)))
-    (setf (js-prop context "request")
-          (new-request))
-    (setf (js-prop context "reply")
-          (new-reply))
-    (js-call (js-prop (slot-value route 'jsroute) 
-                      "handler")
-             context
-             (alist-js-obj bindings))))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; restas-js-lib
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
 (defparameter *restas-js-lib* (empty-lib "RESTAS"))
 
 (add-to-lib *restas-js-lib*
   (.object "Restas"
-    (.constructor "Route" (props)
-      (init-route this props)
-      (:make-new 'make-route)
-      (:prototype :route))
-    
     (.prototype :route
       (.active "url"
-        (:read () (route-url this))
-        (:write (value) (prog1 (setf (route-url this)
+        (:read () (%route-url this))
+        (:write (value) (prog1 (setf (%route-url this)
                                      value)
                           (restas:reconnect-all-routes))))
       (.active "method"
-        (:read () (route-method this))
-        (:write (value) (prog1 (setf (route-method this)
+        (:read () (%route-method this))
+        (:write (value) (prog1 (setf (%route-method this)
                                      value)
                           (restas:reconnect-all-routes))))
       (.active "handler"
-        (:read () (route-handler this))
-        (:write (value) (setf (route-handler this)
+        (:read () (%route-handler this))
+        (:write (value) (setf (%route-handler this)
                               value)
                 )))
     
@@ -194,6 +44,9 @@ case.  This is an inverse of CAMEL-CASE-TO-LISP."
         (if (module-p this)
             (module-routes this)
             :undefined))
+
+      (.func "createRoute" (args)
+        (create-%route this args))
 
       (.func "start" (args)
         (when (module-p this)
@@ -272,11 +125,6 @@ case.  This is an inverse of CAMEL-CASE-TO-LISP."
       (format t "~A~%" (to-string obj))
       (values))))
       
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; environmetn
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter *restas-js-env* (create-env *restas-js-lib*))
 

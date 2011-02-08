@@ -1,4 +1,13 @@
 // demo.js
+//
+// Usage:
+// (restas.javascript:execute #P"/path/to/demo.js")
+//
+// This file is part of the RESTAS-JAVASCRIPT library, released under Lisp-LGPL.
+// See file COPYING for details.
+//
+// Author: Moskvitin Andrey <archimag@gmail.com>
+
 
 var demo = new Restas.Module;
 
@@ -40,7 +49,7 @@ demo.routes.bookRoot.handler = function () {
         html += '<li><a href="' + href + '">Chapter ' + i + "</a></li>";
     }
 
-    html += "</ul>"
+    html += "</ul>";
 
     return html;
 };

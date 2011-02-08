@@ -8,15 +8,7 @@
 (in-package #:restas.javascript)
 
 (define-js-obj (%route (:constructor make-%route (cls)))
-  url method handler)
-
-(defun create-%route (module args)
-  (declare (ignore module))
-  (let ((route (js-obj :route '%route)))
-    (setf (%route-url route) (js-prop-or args "url" "")
-          (%route-method route) (string-upcase (js-prop-or args "method" "GET"))
-          (%route-handler route) (js-prop-or args "handler"))
-    route))
+  url method handler module)
 
 (defclass route (routes:route)
   ((%route :initarg :%route)
@@ -60,6 +52,8 @@
           (new-request))
     (setf (js-prop context "reply")
           (new-reply))
+    (setf (js-prop context "context")
+          (js-obj (module-context (slot-value sub 'module))))
     (js-call (js-prop (slot-value route '%route) 
                       "handler")
              context

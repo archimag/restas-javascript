@@ -24,17 +24,10 @@
                           (restas:reconnect-all-routes))))
       (.active "handler"
         (:read () (%route-handler this))
-        (:write (value) (setf (%route-handler this)
-                              value)
-                )))
+        (:write (value) (set-%route-handler this value))))
     
     (.constructor "Module"  ()
-      (if (eq this *env*)
-          this
-          (progn
-            (setf (module-routes this)
-                  (js-obj))
-            this))
+      (init-module this)
       (:slot-default :noenum)
       (:make-new 'make-module)
       (:prototype :module))
@@ -45,6 +38,10 @@
             (module-routes this)
             :undefined))
 
+      (.active "context"
+        (:read () (module-context this))
+        (:write (value) (set-module-context this value)))
+      
       (.func "defineRoute" (args)
         (create-%route this args))
 

@@ -45,7 +45,7 @@
             (module-routes this)
             :undefined))
 
-      (.func "createRoute" (args)
+      (.func "defineRoute" (args)
         (create-%route this args))
 
       (.func "start" (args)

@@ -27,26 +27,29 @@
         (:write (value) (set-%route-handler this value))))
     
     (.constructor "Module"  ()
-      (init-module this)
+      (init-%module this)
       (:slot-default :noenum)
-      (:make-new 'make-module)
+      (:make-new 'make-%module)
       (:prototype :module))
 
     (.prototype :module
       (.active-r "routes"
-        (if (module-p this)
-            (module-routes this)
+        (if (%module-p this)
+            (%module-routes this)
             :undefined))
 
       (.active "context"
-        (:read () (module-context this))
-        (:write (value) (set-module-context this value)))
+        (:read () (%module-context this))
+        (:write (value) (copy-js-obj value (%module-context this))))
       
       (.func "defineRoute" (args)
         (create-%route this args))
 
+      ;; (.func "mountModule" (module baseurl context)
+      ;;   (create-%submodule args))
+
       (.func "start" (args)
-        (when (module-p this)
+        (when (%module-p this)
           (restas:start this
                         :port (js-prop-or args "port" 8080)))))
 

@@ -53,7 +53,7 @@
     (setf (js-prop context "reply")
           (new-reply))
     (setf (js-prop context "context")
-          (js-obj (module-context (slot-value sub 'module))))
+          (js-obj (%module-context (restas:submodule-module sub))))
     (js-call (js-prop (slot-value route '%route) 
                       "handler")
              context
